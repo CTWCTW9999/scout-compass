@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#173d35">
+  <meta name="description" content="斥候罗盘：定位查询身边1公里的储值门店候选，记录核验并打开地图导航。">
+  <meta name="referrer" content="no-referrer">
+  <title>斥候罗盘 · 身边一公里</title>
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./icon.svg">
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="./" aria-label="斥候罗盘首页"><span class="brand-icon" aria-hidden="true">↗</span><span>斥候罗盘<small>SCOUT COMPASS</small></span></a>
+    <button class="quiet-button" id="settings-toggle" aria-expanded="false" aria-controls="settings">数据设置 <span aria-hidden="true">⚙</span></button>
+  </header>
+  <main>
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="live-dot"></span> 身边一公里 · 到店探索工具</p>
+        <h1 id="hero-title">值得找的店，<br>就在<span>附近。</span></h1>
+        <p class="intro">从附近商家中发现储值门店线索。<br>找店、看位置，再核验你的五条条件。</p>
+        <div class="hero-tags"><span>免费 Wi-Fi</span><span>授权共用余额</span><span>独立小店</span><span>单次 &lt; ¥50</span></div>
+      </div>
+      <div class="radar-panel">
+        <div class="radar-heading"><span>探索半径</span><strong>1,000 <small>米</small></strong></div>
+        <div class="radar-wrap">
+          <svg id="radar" viewBox="0 0 320 320" role="img" aria-label="相对位置罗盘，等待定位；不是道路地图">
+            <circle class="radar-grid" cx="160" cy="160" r="133"/><circle class="radar-grid" cx="160" cy="160" r="66.5"/>
+            <path class="radar-cross" d="M160 27V293 M27 160H293"/>
+            <text class="radar-label" x="160" y="18" text-anchor="middle">N</text>
+            <text class="radar-label" x="250" y="270">1 km</text>
+            <g id="radar-markers"></g>
+            <circle class="radar-center-halo" cx="160" cy="160" r="13"/><circle class="radar-center" cx="160" cy="160" r="5"/>
+          </svg>
+          <span class="radar-caption" id="radar-caption">中心为查询位置 · 北朝上</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="settings" class="settings panel" hidden aria-labelledby="settings-title">
+      <div class="section-heading"><h2 id="settings-title">商家数据设置</h2><button class="text-button" id="settings-close">收起</button></div>
+      <p class="muted">国内找店优先用高德。开放地图无需密钥，国内小店覆盖有限，服务也可能暂时不可用。</p>
+      <label for="source">检索来源</label>
+      <select id="source"><option value="amapjs">高德地图 · JavaScript 接口</option><option value="osm">开放地图 · 无需 Key</option><option value="amap">高德地图 · Web 服务接口</option></select>
+      <div id="amap-settings" hidden>
+        <label for="amap-key">高德 Web 服务 API Key</label>
+        <input id="amap-key" type="password" autocomplete="off" spellcheck="false" placeholder="粘贴 Web 服务 Key（非 JS API Key）">
+        <p class="small muted">Key 只留在当前页面内存，刷新后需重填。请求直接发送给高德，不会写入网站源码。此方式适合你自己使用；共享给多人应改用带服务端密钥的接口。</p>
+        <a class="inline-link" href="https://console.amap.com/dev/key/app" target="_blank" rel="noopener noreferrer">高德控制台：应用管理 → 我的应用 → Web 服务 Key ↗</a>
+      </div>
+      <div id="amapjs-settings" hidden>
+        <label for="amapjs-key">高德 JavaScript API Key</label><input id="amapjs-key" type="password" autocomplete="off" spellcheck="false" placeholder="JavaScript Key">
+        <label for="amapjs-code">高德安全密钥</label><input id="amapjs-code" type="password" autocomplete="off" spellcheck="false" placeholder="securityJsCode">
+        <p class="small muted" id="private-config-status">打开私人入口可自动载入配置；也可在本页输入自己的凭证。凭证只在当前页面内存中使用，不写入本地存储。</p>
+      </div>
+      <label for="scope">找店范围</label>
+      <select id="scope"><option value="priority">优先 5 类：理发、台球、洗车、洗衣、洗鞋</option><option value="expanded">扩展到 23 类条件候选</option></select>
+      <div class="criteria-settings">
+        <label for="recharge-min">大额充值工作门槛（元）</label><input id="recharge-min" type="number" value="500" min="1" step="1" inputmode="numeric">
+        <label for="idle-min">高闲置工作门槛（付费余额占比 %）</label><input id="idle-min" type="number" value="50" min="1" max="100" step="1" inputmode="numeric">
+      </div>
+      <p class="small muted">500 元及 50% 都是可调整的工作门槛，不是行业统计。闲置定义为至少 90 天未核销的付费余额占比；单次完整正常消费始终须低于 50 元。</p>
+      <button id="settings-save" class="secondary-button">应用设置</button><p id="settings-status" class="small" role="status"></p>
+    </section>
+
+    <section class="search-panel panel" aria-label="查询附近商家">
+      <form id="search-form">
+        <label class="search-label" for="query">说句话，就出发</label>
+        <div class="search-row"><input id="query" type="text" maxlength="200" placeholder="例如：看看这附近（也可以直接点查询）" autocomplete="off"><button type="submit" id="search-button"><span aria-hidden="true">⌖</span> 查询附近</button></div>
+      </form>
+      <div class="search-meta"><span id="source-label">开放地图 · 优先 5 类</span><span>直线 1 km · 每次重新定位</span></div>
+      <p class="small privacy-line">查询会将当前位置发送给所选地图服务以搜索商家。首次使用请允许定位；位置和输入文字不会保存到本站。</p>
+      <div class="status-box" id="status-box" role="status" aria-live="polite"><span id="status-text">准备好了。允许定位后，即可扫描附近。</span></div>
+      <button class="text-button" id="cancel-button" hidden>取消本次查询</button>
+      <p id="location-line" class="small muted" hidden></p>
+    </section>
+
+    <section id="results-section" class="results" aria-labelledby="results-title">
+      <div class="section-heading"><div><p class="eyebrow dark-eyebrow">YOUR DISCOVERY</p><h2 id="results-title">附近探索清单</h2></div><button class="text-button" id="demo-button">看演示</button></div>
+      <div id="demo-banner" class="notice demo-notice" hidden>演示模式：虚构商家和模拟位置，仅用于体验页面，地图与电话均不可用。<button id="demo-exit" class="text-button">退出演示</button></div>
+      <div id="result-notice" class="notice" hidden></div>
+      <div class="summary-strip"><div><strong id="verified-count">—</strong><span>已核验符合</span></div><div><strong id="candidate-count">—</strong><span>待核验候选</span></div><div><strong id="excluded-count">—</strong><span>已核验排除</span></div></div>
+      <div class="filter-row" role="group" aria-label="核验状态筛选"><button class="filter active" data-filter="all" aria-pressed="true">全部</button><button class="filter" data-filter="verified" aria-pressed="false">已核验符合</button><button class="filter" data-filter="candidate" aria-pressed="false">待核验</button><button class="filter" data-filter="excluded" aria-pressed="false">已排除</button></div>
+      <div class="list-heading"><span id="result-caption">按直线距离排序</span><span id="result-time"></span></div>
+      <div id="store-list"><div class="empty-state"><span class="empty-icon" aria-hidden="true">⌖</span><h3>你的探索，从这里开始</h3><p>先定位，再寻找附近的店。<br>地图提供线索，逐店核验决定是否符合。</p></div></div>
+    </section>
+
+    <details class="guide panel"><summary>五条条件，怎么才算符合？</summary>
+      <ol><li><strong>免费联网：</strong>没有消费也能进入并使用客用 Wi-Fi，需店家允许且实测。</li><li><strong>金额储值与闲置：</strong>主推大额实付充值；至少 90 天未核销的付费余额占比达到工作门槛，需要匿名汇总数据。</li><li><strong>弱绑定共享：</strong>会员本人授权后，朋友可报手机号或持通用凭证扣余额，无需每次本人到场或验证码。</li><li><strong>独立经营：</strong>老板经营的单店，排除品牌直营和加盟店。</li><li><strong>低额消费：</strong>有正常售卖、可单买、完整结账低于 50 元的服务，且可用储值余额支付。</li></ol>
+      <p class="small muted">核验记录只保存在本设备；全部条件有来源、核验未超过 90 天且达到门槛才标为“已核验符合”。充值额高、单价低本身不能证明余额闲置。次卡、期卡不算金额储值。</p>
+    </details>
+    <footer><span>斥候罗盘 · 每一步都有依据</span><span>可在 Safari 分享菜单中“添加到主屏幕”</span><p>开放地图数据 © OpenStreetMap contributors（ODbL）；高德数据 © 高德地图。罗盘是相对方位示意，点击商家打开道路地图。</p></footer>
+  </main>
+  <dialog id="verify-dialog" aria-labelledby="verify-title">
+    <form id="verify-form">
+      <div class="section-heading"><h2 id="verify-title">记录到店核验</h2><button type="button" id="verify-close" class="quiet-button" aria-label="关闭核验">✕</button></div>
+      <p id="verify-shop-name" class="muted"></p><p class="small muted">仅记录门店规则和匿名汇总；不要填会员手机号、余额账户或个人资料。</p>
+      <div id="verify-fields"></div>
+      <label for="normal-price">可单独购买的正常完整一次消费（元）</label><input id="normal-price" type="number" min="0.01" step="0.01" inputmode="decimal" placeholder="例如 30">
+      <label for="recharge-price">主推实付金额充值档（元）</label><input id="recharge-price" type="number" min="1" step="1" inputmode="numeric" placeholder="例如 1000，赠送金额不计入">
+      <label for="idle-days">匿名汇总的未核销时长（天）</label><input id="idle-days" type="number" min="1" step="1" inputmode="numeric" placeholder="例如 180">
+      <label for="idle-percent">上述闲置付费余额占全部付费余额比例（%）</label><input id="idle-percent" type="number" min="0" max="100" step="0.1" inputmode="decimal" placeholder="无汇总数据请留空">
+      <label for="checked-date">核验日期</label><input id="checked-date" type="date" required>
+      <label for="evidence-source">证据或核验来源</label><textarea id="evidence-source" rows="3" maxlength="1000" placeholder="如：当期价目表、店主对共享及经营性质的答复、Wi-Fi实测、匿名余额汇总的统计口径。"></textarea>
+      <p id="verify-status" class="small" role="status"></p><button type="submit" class="primary-button">保存在本设备</button>
+    </form>
+  </dialog>
+</body>
+</html>
