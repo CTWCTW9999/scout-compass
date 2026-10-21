@@ -154,6 +154,7 @@ $('verify-form').addEventListener('submit',e=>{
 });
 updateSettingsUi();render();
 const token=new URLSearchParams(location.hash.slice(1)).get('setup');
+if(token)document.querySelector('.brand').href=location.pathname+location.hash;
 const privateReady=token?unlockPrivateConfig(token).then(config=>{
   $('amapjs-key').value=config.key;$('amapjs-code').value=config.code;settings.source='amapjs';updateSettingsUi();
   $('private-config-status').textContent='私人地图配置已载入。此链接可启用你的地图凭证，请仅自行收藏。';status('高德地图已配置。允许定位后，即可查询附近。');

@@ -3,6 +3,7 @@ import {unlockPrivateConfig} from './private-config.js';
 import {searchAmapJs} from './amap-js.js';
 import {DEFAULTS} from './core.js';
 const status=document.getElementById('status'),list=document.getElementById('list');
+document.querySelector('a').href='./'+location.hash;
 document.getElementById('test').onclick=async()=>{const button=document.getElementById('test');button.disabled=true;list.replaceChildren();try{
   const token=new URLSearchParams(location.hash.slice(1)).get('setup')||'';
   const config=await unlockPrivateConfig(token);
