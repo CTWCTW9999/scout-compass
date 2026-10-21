@@ -40,7 +40,7 @@ export function searchPage(AMap,category,location,page,{signal,timeout=15000}={}
     });
   });
 }
-export async function searchAmapJs(origin,settings,key,code,{signal,onProgress=()=>{},sdkLoader=loadAmap}={}){
+export async function searchAmapJs(origin,settings,key,code,{signal,onProgress=()=>{},onBatch=()=>{},sdkLoader=loadAmap}={}){
   onProgress('正在连接高德地图…');const AMap=await sdkLoader(key,code);
   if(signal?.aborted)throw new SearchError('cancel','查询已取消');
   const center=wgsToGcj(origin),cats=categoriesFor(settings.scope),results=[],notes=[],failures=[];
@@ -50,6 +50,7 @@ export async function searchAmapJs(origin,settings,key,code,{signal,onProgress=(
     try{
       for(let page=1;page<=8;page++){
         const response=await searchPage(AMap,cat,center,page,{signal});results.push(...normalizeAmap(response.pois,cat));
+        onBatch(normalizeNearby(results,origin));
         if(response.pois.length<25||page*25>=response.count)break;
         if(page===8)notes.push(`${cat.name}达到单条件 200 条上限，列表可能不完整。`);
       }

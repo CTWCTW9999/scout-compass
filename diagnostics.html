@@ -1,0 +1,13 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer"><title>斥候罗盘 · 连接验收</title><link rel="stylesheet" href="./styles.css"></head><body><main style="padding-top:30px"><section class="panel"><h1 style="font-size:25px">地图连接验收</h1><p class="muted">仅使用公开杭州地标坐标测试地图接口，不读取设备位置。结果仍为待核验候选。</p><button id="test" class="primary-button">测试公开地标周边查询</button><p id="status" role="status">等待测试</p><ol id="list"></ol><a href="./">返回斥候罗盘</a></section></main><script type="module">
+import {unlockPrivateConfig} from './private-config.js';
+import {searchAmapJs} from './amap-js.js';
+import {DEFAULTS} from './core.js';
+const status=document.getElementById('status'),list=document.getElementById('list');
+document.getElementById('test').onclick=async()=>{const button=document.getElementById('test');button.disabled=true;list.replaceChildren();try{
+  const token=new URLSearchParams(location.hash.slice(1)).get('setup')||'';
+  const config=await unlockPrivateConfig(token);
+  const show=stores=>{list.replaceChildren();for(const s of stores.slice(0,12)){const li=document.createElement('li');li.textContent=`${s.name} · ${s.categoryName} · ${Math.round(s.distance)} 米`;list.append(li);}};
+  const result=await searchAmapJs({lat:30.2741,lng:120.1551},{...DEFAULTS,source:'amapjs'},config.key,config.code,{onProgress:t=>status.textContent=t,onBatch:show});
+  status.textContent=`查询完成：${result.stores.length} 家候选。${result.notes.join(' ')}`;show(result.stores);
+}catch(e){status.textContent=`连接未完成：${e.message}`;}finally{button.disabled=false;}};
+</script></body></html>

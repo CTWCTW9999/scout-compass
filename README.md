@@ -9,7 +9,7 @@
 ## 实际完成的能力
 
 - 前台 GPS 定位，`maximumAge: 0`，拒绝超过 30 秒的位置；拒绝误差超过 300 米的位置；显示定位时间和误差。
-- WGS84 与高德 GCJ02 坐标转换，按计算的直线距离复核 1000 米边界。
+- WGS84 与高德 GCJ02 坐标转换，按计算的直线距离复核 1000 米边界。高德 JavaScript 检索逐页展示已返回的候选，后台继续补全；未完成或中断时明确标注列表不完整。
 - 默认 OpenStreetMap / Overpass 检索，不需 API Key。两家公共服务顺序尝试，各 18 秒超时；网络错误与成功零结果分开显示。
 - 可使用高德 **JavaScript Key＋安全密钥**，经官方 JS SDK 的 PlaceSearch 检索。也可切换高德 Web 服务周边检索，需 **Web 服务 Key**。Key 仅在页面内存，不保存、不提交到代码仓库。请求由浏览器直接发到高德。需保证 Key 授权、配额和访问限制允许该方式；公开多人服务应改成带限流的服务端代理。
 - 优先 5 类、扩展 23 类。高德每品类分页最多 8 页、每页 25 条；达到接口上限或部分品类失败会显示说明；POI 去重、距离排序。开放地图只覆盖有对应标签的子集。
@@ -45,3 +45,7 @@
 GitHub Pages 从 `main` 分支根目录发布。源码可复用，位置、输入文字、明文 Key 和安全密钥不进入 Git。私人凭证加密保存在 private-config.json，解锁钥匙在私人入口的 URL 片段中；片段不会通过 HTTP 请求或 Referer 发给 GitHub Pages。拿到完整私人入口的人可解锁配置，因此不要公开分享。配置解密后会在浏览器内由高德 SDK 使用；这并不隐藏使用者浏览器中的凭证。多人服务应部署服务端代理，并按高德要求保护安全密钥。
 
 数据来源：OpenStreetMap（ODbL，https://www.openstreetmap.org/copyright）、高德周边搜索（https://lbs.amap.com/api/webservice/guide/api/search）、高德 URI（https://lbs.amap.com/api/uri-api/guide/point）。
+
+## 验证记录
+
+13 项 Node 测试通过；390 像素页面无横向溢出，演示核验 0→1、退出演示不保留记录的浏览器检查通过。真实高德 JavaScript 接口在公开杭州地标测试返回 94 家范围内候选，部分品类超时，列表保留已返回结果并标注不完整。未读取用户电脑位置；iPhone 定位权限与真机网络仍需用户首次使用时验证。公开域名验收入口 diagnostics.html 使用相同 SDK 和检索函数，必须携带私人入口片段才能启用测试。

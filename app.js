@@ -105,7 +105,11 @@ $('search-form').addEventListener('submit',async e=>{
     $('location-line').hidden=false;$('location-line').textContent=`定位于 ${time} · 误差约 ±${Math.round(position.accuracy)} 米 · ${position.lat.toFixed(5)}, ${position.lng.toFixed(5)}`;
     renderRadar();
     const update=text=>status(text,'busy');
-    const options={signal:controller.signal,onProgress:update};
+    const options={signal:controller.signal,onProgress:update,onBatch:batch=>{
+      if(controller.signal.aborted)return;stores=batch;hasResults=true;
+      $('result-notice').hidden=false;$('result-notice').textContent='正在补充各品类与后续分页，当前列表尚不完整。已返回的门店可先查看定位，核验记录保留在本设备。';
+      $('result-time').textContent=`${time} · 检索中`;render();renderRadar();
+    }};
     const result=await (snapshot.source==='amapjs'?searchAmapJs(position,snapshot,jsKey,jsCode,options):snapshot.source==='amap'?searchAmap(position,snapshot,key,options):searchOsm(position,snapshot,options));
     await publishedReady;if(controller.signal.aborted)throw new SearchError('cancel','查询已取消');
     const availableCategories=new Set(categoriesFor(snapshot.scope).map(c=>c.id));
@@ -118,7 +122,7 @@ $('search-form').addEventListener('submit',async e=>{
     render();renderRadar();
   }catch(err){
     if(err.code==='cancel'){clearResults();status('本次查询已取消。');}
-    else{status(err.message||'查询失败，请重试。','error');$('result-notice').hidden=false;$('result-notice').textContent='本次查询未完成，无法判断附近门店数量。可以重试或调整数据来源。';}
+    else{status(err.message||'查询失败，请重试。','error');$('result-notice').hidden=false;$('result-notice').textContent=hasResults?'本次查询中断，仅展示中断前已返回的门店，列表不完整。请重试或调整数据来源。':'本次查询未完成，无法判断附近门店数量。可以重试或调整数据来源。';}
   }finally{if(run===controller){run=null;setBusy(false);}}
 });
 $('cancel-button').addEventListener('click',()=>run?.abort());
